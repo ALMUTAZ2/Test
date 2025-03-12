@@ -1,0 +1,554 @@
+  <!DOCTYPE html>
+  <html dir="rtl" lang="ar">
+  <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>مسابقة رمضان</title>
+      <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+      <style>
+          @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap');
+          
+          body {
+              font-family: 'Tajawal', sans-serif;
+              background-color: #f8f4e8;
+          }
+          
+          .timer-bar {
+              transition: width 1s linear;
+          }
+          
+          .option {
+              transition: all 0.3s ease;
+              cursor: pointer;
+          }
+          
+          .option:hover {
+              transform: translateY(-2px);
+              box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+          }
+          
+          .option-correct {
+              background-color: #4ade80 !important;
+              color: white;
+          }
+          
+          .option-wrong {
+              background-color: #f87171 !important;
+              color: white;
+          }
+          
+          .disabled {
+              pointer-events: none;
+          }
+
+          .winner-card {
+              transition: transform 0.3s ease;
+          }
+          
+          .winner-card:hover {
+              transform: translateY(-5px);
+          }
+
+          .leaderboard-tab.active {
+              background-color: #3b82f6;
+              color: white;
+          }
+
+          @keyframes slideIn {
+              from {
+                  transform: translateY(-20px);
+                  opacity: 0;
+              }
+              to {
+                  transform: translateY(0);
+                  opacity: 1;
+              }
+          }
+
+          .animate-slideIn {
+              animation: slideIn 0.5s ease forwards;
+          }
+      </style>
+  </head>
+  <body class="min-h-screen bg-gradient-to-b from-blue-50 to-blue-100">
+      <div class="container mx-auto px-4 py-8">
+          <!-- شاشة غير متاح -->
+          <div id="unavailable-screen" class="hidden animate-slideIn">
+              <div class="text-center">
+                  <div class="bg-white rounded-lg shadow-lg p-8 max-w-md mx-auto">
+                      <h2 class="text-2xl font-bold text-red-600 mb-4">المسابقة غير متاحة حالياً</h2>
+                      <p class="text-gray-600 mb-4">مواعيد المسابقة:</p>
+                      <ul class="text-gray-600 mb-6">
+                          <li>المسابقة: 2:00 - 2:30 صباحاً</li>
+                          <li>النتائج: 2:30 صباحاً</li>
+                      </ul>
+                      <p id="next-time" class="text-blue-600 font-bold"></p>
+                  </div>
+              </div>
+
+              <!-- عرض المتصدرين حتى خارج وقت المسابقة -->
+              <div class="mt-8">
+                  <div class="bg-white rounded-lg shadow-lg p-6 max-w-4xl mx-auto">
+                      <h2 class="text-2xl font-bold text-blue-600 mb-6 text-center">المتصدرون</h2>
+                      
+                      <!-- أزرار التصنيف -->
+                      <div class="flex justify-center gap-4 mb-6">
+                          <button class="leaderboard-tab active px-6 py-2 rounded-full" data-period="daily">اليوم</button>
+                          <button class="leaderboard-tab px-6 py-2 rounded-full" data-period="weekly">الأسبوع</button>
+                          <button class="leaderboard-tab px-6 py-2 rounded-full" data-period="monthly">الشهر</button>
+                      </div>
+
+                      <!-- عرض المتصدرين -->
+                      <div id="leaderboard-display"></div>
+                  </div>
+              </div>
+          </div>
+
+          <!-- شاشة المسابقة -->
+          <div id="quiz-container" class="hidden animate-slideIn">
+              <!-- شاشة الترحيب -->
+              <div id="welcome-screen">
+                  <div class="text-center">
+                      <h1 class="text-4xl font-bold text-blue-600 mb-6">مسابقة رمضان</h1>
+                      <div class="bg-white rounded-lg shadow-lg p-8 max-w-md mx-auto">
+                          <h2 class="text-2xl font-semibold mb-4">أهلاً بك في مسابقة رمضان</h2>
+                          <p class="text-gray-600 mb-6">الرجاء إدخال اسمك للبدء</p>
+                          <input type="text" id="player-name" 
+                                 class="w-full p-3 border rounded-lg mb-4 text-center" 
+                                 placeholder="أدخل اسمك هنا">
+                          <button id="start-btn" 
+                                  class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition duration-300">
+                              ابدأ المسابقة
+                          </button>
+                      </div>
+                  </div>
+              </div>
+
+              <!-- شاشة الأسئلة -->
+              <div id="quiz-screen" class="hidden">
+                  <div class="bg-white rounded-lg shadow-lg p-8 max-w-2xl mx-auto">
+                      <div class="flex justify-between items-center mb-6">
+                          <div class="text-xl font-bold text-blue-600">السؤال: <span id="question-number">1</span>/3</div>
+                          <div class="text-xl font-bold text-blue-600">النقاط: <span id="score">0</span></div>
+                      </div>
+                      
+                      <div class="relative w-full h-2 bg-gray-200 rounded-full mb-4">
+                          <div id="timer-bar" class="timer-bar absolute top-0 left-0 h-full bg-blue-600 rounded-full"></div>
+                      </div>
+                      
+                      <div class="text-center mb-2">
+                          <span id="timer" class="text-2xl font-bold text-blue-600">10</span>
+                      </div>
+
+                      <div id="question" class="text-xl font-semibold mb-6 text-center"></div>
+                      
+                      <div id="options" class="space-y-4">
+                          <!-- الخيارات ستضاف هنا ديناميكياً -->
+                      </div>
+                  </div>
+              </div>
+          </div>
+
+          <!-- شاشة النتائج -->
+          <div id="results-container" class="hidden animate-slideIn">
+              <div class="text-center mb-8">
+                  <h1 class="text-4xl font-bold text-blue-600 mb-2">نتائج مسابقة رمضان</h1>
+                  <p class="text-gray-600" id="date-time"></p>
+              </div>
+
+              <!-- الفائزون -->
+              <div class="grid md:grid-cols-3 gap-6 mb-8">
+                  <div class="winner-card bg-white rounded-lg shadow-lg p-6 text-center order-2 md:order-1">
+                      <div class="text-3xl mb-2">🥈</div>
+                      <h3 class="text-xl font-bold text-gray-800 mb-2">المركز الثاني</h3>
+                      <p class="text-2xl font-bold text-blue-600 mb-2" id="second-place-name">-</p>
+                      <p class="text-lg text-gray-600" id="second-place-score">النقاط: -</p>
+                  </div>
+
+                  <div class="winner-card bg-white rounded-lg shadow-lg p-6 text-center order-1 md:order-2 transform scale-105">
+                      <div class="text-4xl mb-2">🏆</div>
+                      <h3 class="text-2xl font-bold text-gray-800 mb-2">المركز الأول</h3>
+                      <p class="text-3xl font-bold text-blue-600 mb-2" id="first-place-name">-</p>
+                      <p class="text-xl text-gray-600" id="first-place-score">النقاط: -</p>
+                  </div>
+
+                  <div class="winner-card bg-white rounded-lg shadow-lg p-6 text-center order-3">
+                      <div class="text-3xl mb-2">🥉</div>
+                      <h3 class="text-xl font-bold text-gray-800 mb-2">المركز الثالث</h3>
+                      <p class="text-2xl font-bold text-blue-600 mb-2" id="third-place-name">-</p>
+                      <p class="text-lg text-gray-600" id="third-place-score">النقاط: -</p>
+                  </div>
+              </div>
+
+              <!-- جدول النتائج -->
+              <div class="bg-white rounded-lg shadow-lg p-6">
+                  <h2 class="text-2xl font-bold text-gray-800 mb-4">جميع النتائج</h2>
+                  <div class="overflow-x-auto">
+                      <table class="w-full">
+                          <thead>
+                              <tr class="bg-gray-50">
+                                  <th class="px-6 py-3 text-right text-sm font-semibold text-gray-600">المركز</th>
+                                  <th class="px-6 py-3 text-right text-sm font-semibold text-gray-600">الاسم</th>
+                                  <th class="px-6 py-3 text-right text-sm font-semibold text-gray-600">النقاط</th>
+                                  <th class="px-6 py-3 text-right text-sm font-semibold text-gray-600">الوقت</th>
+                              </tr>
+                          </thead>
+                          <tbody id="results-table">
+                              <!-- سيتم إضافة النتائج هنا ديناميكياً -->
+                          </tbody>
+                      </table>
+                  </div>
+              </div>
+          </div>
+      </div>
+
+      <script>
+          // بيانات المتصدرين
+          const leaderboardData = {
+              daily: [],
+              weekly: [],
+              monthly: []
+          };
+
+          // محاكاة بيانات المتصدرين
+          function initializeLeaderboardData() {
+              // بيانات اليوم
+              leaderboardData.daily = [
+                  { name: "أحمد محمد", score: 280, time: 22.5 },
+                  { name: "سارة أحمد", score: 300, time: 20.1 },
+                  { name: "خالد عبدالله", score: 260, time: 23.8 }
+              ];
+
+              // بيانات الأسبوع
+              leaderboardData.weekly = [
+                  { name: "محمد علي", score: 295, time: 21.2 },
+                  { name: "فاطمة يوسف", score: 285, time: 22.3 },
+                  { name: "عمر خالد", score: 275, time: 23.1 }
+              ];
+
+              // بيانات الشهر
+              leaderboardData.monthly = [
+                  { name: "نورة سعد", score: 298, time: 20.8 },
+                  { name: "سلطان محمد", score: 290, time: 21.5 },
+                  { name: "ريم عبدالله", score: 288, time: 21.9 }
+              ];
+          }
+
+          // تحديث عرض المتصدرين
+          function updateLeaderboardDisplay(period = 'daily') {
+              const results = leaderboardData[period];
+              const leaderboardDisplay = document.getElementById('leaderboard-display');
+              
+              let html = `
+                  <div class="grid md:grid-cols-3 gap-4 mb-6">
+                      ${results.slice(0, 3).map((result, index) => `
+                          <div class="winner-card bg-white rounded-lg shadow p-4 text-center">
+                              <div class="text-3xl mb-2">${index === 0 ? '🏆' : index === 1 ? '🥈' : '🥉'}</div>
+                              <h3 class="text-lg font-bold text-gray-800">${result.name}</h3>
+                              <p class="text-blue-600">النقاط: ${result.score}</p>
+                              <p class="text-gray-600">الوقت: ${result.time.toFixed(1)} ثانية</p>
+                          </div>
+                      `).join('')}
+                  </div>
+                  <div class="overflow-x-auto">
+                      <table class="w-full">
+                          <thead>
+                              <tr class="bg-gray-50">
+                                  <th class="px-4 py-2">المركز</th>
+                                  <th class="px-4 py-2">الاسم</th>
+                                  <th class="px-4 py-2">النقاط</th>
+                                  <th class="px-4 py-2">الوقت</th>
+                              </tr>
+                          </thead>
+                          <tbody>
+                              ${results.map((result, index) => `
+                                  <tr class="${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}">
+                                      <td class="px-4 py-2">${index + 1}</td>
+                                      <td class="px-4 py-2">${result.name}</td>
+                                      <td class="px-4 py-2">${result.score}</td>
+                                      <td class="px-4 py-2">${result.time.toFixed(1)} ثانية</td>
+                                  </tr>
+                              `).join('')}
+                          </tbody>
+                      </table>
+                  </div>
+              `;
+              
+              leaderboardDisplay.innerHTML = html;
+          }
+
+          // إضافة نتيجة جديدة
+          function addNewResult(result) {
+              leaderboardData.daily.push(result);
+              leaderboardData.daily.sort((a, b) => b.score - a.score || a.time - b.time);
+              updateLeaderboardDisplay('daily');
+          }
+
+          // تهيئة أزرار التصنيف
+          function initializeLeaderboardTabs() {
+              const tabs = document.querySelectorAll('.leaderboard-tab');
+              tabs.forEach(tab => {
+                  tab.addEventListener('click', () => {
+                      tabs.forEach(t => t.classList.remove('active'));
+                      tab.classList.add('active');
+                      updateLeaderboardDisplay(tab.dataset.period);
+                  });
+              });
+          }
+
+          const elements = {
+              unavailableScreen: document.getElementById('unavailable-screen'),
+              quizContainer: document.getElementById('quiz-container'),
+              resultsContainer: document.getElementById('results-container'),
+              welcomeScreen: document.getElementById('welcome-screen'),
+              quizScreen: document.getElementById('quiz-screen'),
+              playerNameInput: document.getElementById('player-name'),
+              startButton: document.getElementById('start-btn'),
+              questionNumber: document.getElementById('question-number'),
+              score: document.getElementById('score'),
+              timer: document.getElementById('timer'),
+              timerBar: document.getElementById('timer-bar'),
+              question: document.getElementById('question'),
+              optionsContainer: document.getElementById('options'),
+              nextTime: document.getElementById('next-time'),
+              dateTime: document.getElementById('date-time')
+          };
+
+          const gameState = {
+              playerName: '',
+              currentQuestion: 0,
+              score: 0,
+              timer: null,
+              timeLeft: 10,
+              questions: [
+                  {
+                      question: 'ما هو أول شهر في التقويم الهجري؟',
+                      options: ['محرم', 'رمضان', 'شوال', 'رجب'],
+                      correct: 0
+                  },
+                  {
+                      question: 'كم عدد ركعات صلاة التراويح؟',
+                      options: ['8 ركعات', '20 ركعة', '12 ركعة', '6 ركعات'],
+                      correct: 1
+                  },
+                  {
+                      question: 'في أي ليلة من رمضان تُتحرى ليلة القدر؟',
+                      options: ['ليلة 23', 'ليلة 27', 'ليلة 29', 'ليلة 21'],
+                      correct: 1
+                  }
+              ],
+              questionStartTime: 0,
+              totalTime: 0,
+              questionTimes: [],
+              answers: []
+          };
+
+          function checkAvailability() {
+              const now = new Date();
+              const hours = now.getHours();
+              const minutes = now.getMinutes();
+              
+              elements.unavailableScreen.classList.add('hidden');
+              elements.quizContainer.classList.add('hidden');
+              elements.resultsContainer.classList.add('hidden');
+
+              if (hours === 2) {
+                  if (minutes < 30) {
+                      elements.quizContainer.classList.remove('hidden');
+                  } else {
+                      elements.resultsContainer.classList.remove('hidden');
+                      updateResults();
+                  }
+              } else {
+                  elements.unavailableScreen.classList.remove('hidden');
+                  updateNextTime();
+              }
+          }
+
+          function updateNextTime() {
+              const now = new Date();
+              const next = new Date();
+              next.setHours(2, 0, 0, 0);
+              if (now.getHours() >= 2) {
+                  next.setDate(next.getDate() + 1);
+              }
+              const diff = next - now;
+              const hours = Math.floor(diff / (1000 * 60 * 60));
+              const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+              elements.nextTime.textContent = `الوقت المتبقي للمسابقة القادمة: ${hours} ساعة و ${minutes} دقيقة`;
+          }
+
+          function updateDateTime() {
+              const now = new Date();
+              const dateOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+              const timeOptions = { hour: '2-digit', minute: '2-digit' };
+              const dateStr = now.toLocaleDateString('ar-SA', dateOptions);
+              const timeStr = now.toLocaleTimeString('ar-SA', timeOptions);
+              if (elements.dateTime) {
+                  elements.dateTime.textContent = `${dateStr} - ${timeStr}`;
+              }
+          }
+
+          elements.startButton?.addEventListener('click', () => {
+              const playerName = elements.playerNameInput.value.trim();
+              if (!playerName) {
+                  alert('الرجاء إدخال اسمك');
+                  return;
+              }
+              gameState.playerName = playerName;
+              startQuiz();
+          });
+
+          function startQuiz() {
+              elements.welcomeScreen.classList.add('hidden');
+              elements.quizScreen.classList.remove('hidden');
+              showQuestion();
+          }
+
+          function showQuestion() {
+              const question = gameState.questions[gameState.currentQuestion];
+              elements.questionNumber.textContent = gameState.currentQuestion + 1;
+              elements.question.textContent = question.question;
+              elements.optionsContainer.innerHTML = '';
+              
+              question.options.forEach((option, index) => {
+                  const button = document.createElement('button');
+                  button.className = 'option w-full p-4 text-right bg-white border rounded-lg hover:bg-blue-50';
+                  button.textContent = option;
+                  button.onclick = () => handleAnswer(index);
+                  elements.optionsContainer.appendChild(button);
+              });
+
+              gameState.questionStartTime = Date.now();
+              startTimer();
+          }
+
+          function startTimer() {
+              gameState.timeLeft = 10;
+              elements.timer.textContent = gameState.timeLeft;
+              elements.timerBar.style.width = '100%';
+              
+              clearInterval(gameState.timer);
+              gameState.timer = setInterval(() => {
+                  gameState.timeLeft--;
+                  elements.timer.textContent = gameState.timeLeft;
+                  elements.timerBar.style.width = `${(gameState.timeLeft / 10) * 100}%`;
+                  
+                  if (gameState.timeLeft <= 0) {
+                      handleAnswer(-1);
+                  }
+              }, 1000);
+          }
+
+          function handleAnswer(selectedOption) {
+              clearInterval(gameState.timer);
+              const answerTime = (Date.now() - gameState.questionStartTime) / 1000;
+              gameState.questionTimes.push(answerTime);
+              
+              const question = gameState.questions[gameState.currentQuestion];
+              const isCorrect = selectedOption === question.correct;
+              
+              let points = 0;
+              if (isCorrect) {
+                  if (answerTime <= 3) points = 100;
+                  else if (answerTime <= 5) points = 80;
+                  else if (answerTime <= 7) points = 60;
+                  else points = 40;
+              }
+              
+              gameState.score += points;
+              gameState.totalTime += answerTime;
+              
+              const options = elements.optionsContainer.children;
+              if (selectedOption >= 0) {
+                  options[selectedOption].classList.add(isCorrect ? 'option-correct' : 'option-wrong');
+              }
+              options[question.correct].classList.add('option-correct');
+              
+              Array.from(options).forEach(option => option.classList.add('disabled'));
+              
+              gameState.answers.push({
+                  question: question.question,
+                  selectedAnswer: selectedOption === -1 ? 'لم يتم الإجابة' : question.options[selectedOption],
+                  correctAnswer: question.options[question.correct],
+                  isCorrect: isCorrect,
+                  time: answerTime,
+                  points: points
+              });
+
+              elements.score.textContent = gameState.score;
+              
+              setTimeout(() => {
+                  if (gameState.currentQuestion < gameState.questions.length - 1) {
+                      gameState.currentQuestion++;
+                      showQuestion();
+                  } else {
+                      saveResults();
+                  }
+              }, 1500);
+          }
+
+          function saveResults() {
+              const result = {
+                  name: gameState.playerName,
+                  score: gameState.score,
+                  time: gameState.totalTime,
+                  timestamp: new Date().toISOString()
+              };
+
+              // إضافة النتيجة الجديدة للمتصدرين
+              addNewResult(result);
+              
+              // إعادة تحميل الصفحة بعد حفظ النتائج
+              setTimeout(() => {
+                  location.reload();
+              }, 2000);
+          }
+
+          function updateResults() {
+              const results = leaderboardData.daily;
+              
+              // تحديث الفائزين
+              if (results.length > 0) {
+                  document.getElementById('first-place-name').textContent = results[0].name;
+                  document.getElementById('first-place-score').textContent = `النقاط: ${results[0].score}`;
+              }
+              if (results.length > 1) {
+                  document.getElementById('second-place-name').textContent = results[1].name;
+                  document.getElementById('second-place-score').textContent = `النقاط: ${results[1].score}`;
+              }
+              if (results.length > 2) {
+                  document.getElementById('third-place-name').textContent = results[2].name;
+                  document.getElementById('third-place-score').textContent = `النقاط: ${results[2].score}`;
+              }
+
+              // تحديث جدول النتائج
+              const tableBody = document.getElementById('results-table');
+              tableBody.innerHTML = '';
+              results.forEach((result, index) => {
+                  const row = document.createElement('tr');
+                  row.className = index % 2 === 0 ? 'bg-white' : 'bg-gray-50';
+                  row.innerHTML = `
+                      <td class="px-6 py-4 text-sm text-gray-800">${index + 1}</td>
+                      <td class="px-6 py-4 text-sm text-gray-800">${result.name}</td>
+                      <td class="px-6 py-4 text-sm text-gray-800">${result.score}</td>
+                      <td class="px-6 py-4 text-sm text-gray-800">${result.time.toFixed(1)} ثانية</td>
+                  `;
+                  tableBody.appendChild(row);
+              });
+          }
+
+          // تهيئة الصفحة
+          initializeLeaderboardData();
+          initializeLeaderboardTabs();
+          checkAvailability();
+          updateDateTime();
+          
+          // تحديث كل دقيقة
+          setInterval(() => {
+              checkAvailability();
+              updateDateTime();
+          }, 60000);
+      </script>
+  </body>
+  </html>
