@@ -3,82 +3,104 @@
   <head>
       <meta charset="UTF-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>المتصدرون - مسابقة رمضان</title>
-      <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
-      <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore-compat.js"></script>
+      <title>المتصدرين - فوازير رمضان</title>
+      <script src="https://cdn.tailwindcss.com"></script>
+      <script src="https://unpkg.com/lucide@latest"></script>
+      <!-- Firebase -->
+      <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+      <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
       <style>
-          body {
-              font-family: 'Arial', sans-serif;
-              margin: 0;
-              padding: 20px;
-              background-color: #f0f0f0;
-              text-align: center;
+          @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap');
+          
+          * {
+              font-family: 'Cairo', sans-serif;
           }
-          .container {
-              max-width: 600px;
-              margin: 0 auto;
-              background-color: white;
-              padding: 20px;
-              border-radius: 10px;
-              box-shadow: 0 0 10px rgba(0,0,0,0.1);
+
+          .crown {
+              animation: float 3s ease-in-out infinite;
           }
-          .leaderboard-item {
-              margin: 10px 0;
-              padding: 15px;
-              background-color: #f8f8f8;
-              border-radius: 5px;
+
+          @keyframes float {
+              0%, 100% { transform: translateY(0) rotate(0deg); }
+              50% { transform: translateY(-10px) rotate(5deg); }
+          }
+
+          .winner-card {
               transition: all 0.3s ease;
           }
-          .error-message {
-              color: red;
-              padding: 10px;
-              margin: 10px 0;
-              background-color: #ffe6e6;
-              border-radius: 5px;
+          .winner-card:hover {
+              transform: translateY(-5px);
           }
-          .create-index-message {
-              background-color: #fff3cd;
-              border: 1px solid #ffeeba;
-              color: #856404;
-              padding: 15px;
-              margin: 10px 0;
-              border-radius: 5px;
+
+          .gradient-gold {
+              background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
           }
-          .create-index-button {
-              background-color: #ffc107;
-              color: #000;
-              padding: 10px 20px;
-              border: none;
-              border-radius: 5px;
-              cursor: pointer;
-              margin: 10px;
-              text-decoration: none;
-              display: inline-block;
+          .gradient-silver {
+              background: linear-gradient(135deg, #C0C0C0 0%, #808080 100%);
           }
-          button {
-              background-color: #4CAF50;
-              color: white;
-              padding: 10px 20px;
-              border: none;
-              border-radius: 5px;
-              cursor: pointer;
-              margin: 10px;
+          .gradient-bronze {
+              background: linear-gradient(135deg, #CD7F32 0%, #8B4513 100%);
           }
-          .gold { background-color: #FFD700; }
-          .silver { background-color: #C0C0C0; }
-          .bronze { background-color: #CD7F32; }
+
+          .loading {
+              animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+          }
+
+          @keyframes pulse {
+              0%, 100% { opacity: 1; }
+              50% { opacity: .5; }
+          }
       </style>
   </head>
-  <body>
-      <div class="container">
-          <h1>المتصدرون</h1>
-          <div id="status"></div>
-          <div id="leaderboard"></div>
-          <button onclick="fetchScores()">تحديث النتائج</button>
-          <a href="index.html"><button>العودة للمسابقة</button></a>
+  <body class="bg-gradient-to-b from-blue-900 to-indigo-950 min-h-screen">
+      <!-- شريط التاريخ -->
+      <div class="bg-white/5 backdrop-blur-sm border-b border-white/10 p-3 text-white text-center">
+          <div class="max-w-3xl mx-auto flex justify-between items-center">
+              <div class="flex items-center gap-2">
+                  <i data-lucide="calendar" class="w-5 h-5 text-green-400"></i>
+                  <span id="current-date" class="text-green-400"></span>
+              </div>
+              <a href="index.html" class="flex items-center gap-2 text-yellow-400 hover:text-yellow-300">
+                  <i data-lucide="arrow-right" class="w-5 h-5"></i>
+                  العودة للمسابقة
+              </a>
+          </div>
+      </div>
+
+      <div class="container mx-auto px-4 py-12">
+          <!-- العنوان -->
+          <div class="text-center mb-16">
+              <h1 class="text-4xl font-bold text-yellow-400 mb-4">🌙 متصدرو اليوم 🌙</h1>
+              <p class="text-white/80">أفضل ثلاثة متسابقين في فوازير رمضان</p>
+          </div>
+
+          <!-- قائمة المتصدرين -->
+          <div class="max-w-3xl mx-auto">
+              <div id="loading" class="text-center text-white loading mb-8">
+                  <i data-lucide="loader" class="w-8 h-8 mx-auto mb-2"></i>
+                  جاري تحميل النتائج...
+              </div>
+
+              <div id="winners-container" class="space-y-4 hidden">
+                  <!-- سيتم ملء هذا القسم بواسطة JavaScript -->
+              </div>
+
+              <!-- رسالة عدم وجود نتائج -->
+              <div id="no-results" class="hidden">
+                  <div class="bg-white/10 backdrop-blur-lg rounded-2xl p-8 text-center">
+                      <i data-lucide="info" class="w-16 h-16 mx-auto text-yellow-400 mb-4"></i>
+                      <h2 class="text-2xl font-bold text-white mb-2">لا توجد نتائج لليوم حتى الآن</h2>
+                      <p class="text-gray-300">كن أول المشاركين في مسابقة اليوم!</p>
+                      <a href="index.html" class="inline-block mt-6 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white px-8 py-3 rounded-xl">
+                          شارك الآن
+                      </a>
+                  </div>
+              </div>
+          </div>
       </div>
 
       <script>
+          // تهيئة Firebase
           const firebaseConfig = {
               apiKey: "AIzaSyC5RYK1lGaJaMQJmOH85cqNgv6m7rbLS_A",
               authDomain: "ramadanmotaz-5570f.firebaseapp.com",
@@ -89,91 +111,139 @@
               measurementId: "G-WLVRQVRGHT"
           };
 
-          let db;
-          try {
-              firebase.initializeApp(firebaseConfig);
-              db = firebase.firestore();
-          } catch (error) {
-              console.error('Firebase initialization error:', error);
-              document.getElementById('status').innerHTML = 
-                  `<div class="error-message">خطأ في تهيئة قاعدة البيانات: ${error.message}</div>`;
+          // تهيئة Firebase
+          firebase.initializeApp(firebaseConfig);
+          const db = firebase.firestore();
+
+          // تهيئة أيقونات Lucide
+          lucide.createIcons();
+
+          // تنسيق التاريخ بالعربية
+          const arabicMonths = [
+              "يناير", "فبراير", "مارس", "إبريل", "مايو", "يونيو",
+              "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"
+          ];
+
+          function formatDate(date) {
+              const day = date.getDate();
+              const month = arabicMonths[date.getMonth()];
+              const year = date.getFullYear();
+              return `${day} ${month} ${year}`;
           }
 
-          async function fetchScores() {
-              const statusDiv = document.getElementById('status');
-              const leaderboardDiv = document.getElementById('leaderboard');
+          // عرض التاريخ الحالي
+          document.getElementById('current-date').textContent = formatDate(new Date());
+
+          // إنشاء بطاقة الفائز
+          function createWinnerCard(player, rank) {
+              const rankConfig = {
+                  1: {
+                      gradient: 'gradient-gold',
+                      icon: '👑',
+                      label: 'المركز الأول',
+                      iconClass: 'crown',
+                      scale: 'scale-105'
+                  },
+                  2: {
+                      gradient: 'gradient-silver',
+                      icon: '🥈',
+                      label: 'المركز الثاني',
+                      iconClass: '',
+                      scale: 'scale-100'
+                  },
+                  3: {
+                      gradient: 'gradient-bronze',
+                      icon: '🥉',
+                      label: 'المركز الثالث',
+                      iconClass: '',
+                      scale: 'scale-95'
+                  }
+              };
+
+              const config = rankConfig[rank];
               
-              statusDiv.innerHTML = 'جاري تحميل النتائج...';
-              
+              return `
+                  <div class="winner-card ${config.scale}">
+                      <div class="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border-2 border-${rank === 1 ? 'yellow' : rank === 2 ? 'gray' : 'yellow'}-400/20">
+                          <div class="flex items-center gap-4">
+                              <div class="flex-shrink-0">
+                                  <div class="${config.gradient} w-16 h-16 rounded-xl flex items-center justify-center">
+                                      <span class="text-2xl ${config.iconClass}">${config.icon}</span>
+                                  </div>
+                              </div>
+                              <div class="flex-grow">
+                                  <div class="text-sm text-gray-400">${config.label}</div>
+                                  <div class="text-xl font-bold text-white">${player.playerName}</div>
+                                  <div class="flex items-center gap-4 mt-2">
+                                      <div class="text-green-400">
+                                          <i data-lucide="target" class="w-4 h-4 inline-block mr-1"></i>
+                                          ${player.score} نقطة
+                                      </div>
+                                      <div class="text-yellow-400">
+                                          <i data-lucide="clock" class="w-4 h-4 inline-block mr-1"></i>
+                                          ${player.totalTime.toFixed(1)} ثانية
+                                      </div>
+                                  </div>
+                              </div>
+                          </div>
+                      </div>
+                  </div>
+              `;
+          }
+
+          // جلب وعرض المتصدرين
+          async function displayTopPlayers() {
               try {
-                  // محاولة جلب النتائج بترتيب بسيط أولاً
+                  // الحصول على تاريخ اليوم
+                  const today = new Date();
+                  today.setHours(0, 0, 0, 0);
+
+                  // جلب النتائج من Firebase
                   const snapshot = await db.collection('scores')
-                      .orderBy('score', 'desc')
-                      .limit(10)
+                      .where('timestamp', '>=', today)
+                      .orderBy('timestamp', 'desc')
                       .get();
 
-                  if (snapshot.empty) {
-                      statusDiv.innerHTML = 'لا توجد نتائج بعد';
-                      leaderboardDiv.innerHTML = '';
-                      return;
-                  }
-
-                  let html = '';
-                  let rank = 1;
-
+                  // تحويل النتائج إلى مصفوفة وترتيبها
+                  const scores = [];
                   snapshot.forEach(doc => {
-                      const data = doc.data();
-                      const className = rank === 1 ? 'gold' : 
-                                      rank === 2 ? 'silver' : 
-                                      rank === 3 ? 'bronze' : '';
-                      
-                      html += `
-                          <div class="leaderboard-item ${className}">
-                              #${rank} - ${data.playerName}<br>
-                              النقاط: ${data.score}<br>
-                              الوقت: ${data.totalTime ? data.totalTime.toFixed(2) : 'N/A'} ثانية
-                          </div>
-                      `;
-                      rank++;
+                      scores.push(doc.data());
                   });
 
-                  statusDiv.innerHTML = '';
-                  leaderboardDiv.innerHTML = html;
+                  // ترتيب النتائج حسب النقاط والوقت
+                  const topPlayers = scores
+                      .sort((a, b) => {
+                          if (b.score !== a.score) {
+                              return b.score - a.score;
+                          }
+                          return a.totalTime - b.totalTime;
+                      })
+                      .slice(0, 3);
 
+                  // إخفاء شاشة التحميل
+                  document.getElementById('loading').classList.add('hidden');
+
+                  if (topPlayers.length > 0) {
+                      const winnersContainer = document.getElementById('winners-container');
+                      winnersContainer.classList.remove('hidden');
+                      winnersContainer.innerHTML = topPlayers
+                          .map((player, index) => createWinnerCard(player, index + 1))
+                          .join('');
+                      
+                      // تحديث أيقونات Lucide للبطاقات الجديدة
+                      lucide.createIcons();
+                  } else {
+                      document.getElementById('no-results').classList.remove('hidden');
+                  }
               } catch (error) {
                   console.error('Error fetching scores:', error);
-                  
-                  if (error.message.includes('requires an index')) {
-                      statusDiv.innerHTML = `
-                          <div class="create-index-message">
-                              <p>يحتاج النظام إلى إنشاء فهرس خاص في Firebase. يرجى اتباع الخطوات التالية:</p>
-                              <ol style="text-align: right">
-                                  <li>انقر على الزر أدناه للانتقال إلى لوحة تحكم Firebase</li>
-                                  <li>قم بتسجيل الدخول إذا لزم الأمر</li>
-                                  <li>انقر على "Create Index" في الصفحة التي ستفتح</li>
-                                  <li>انتظر حتى يتم إنشاء الفهرس (قد يستغرق بضع دقائق)</li>
-                                  <li>عد إلى هذه الصفحة وانقر على "تحديث النتائج"</li>
-                              </ol>
-                              <a class="create-index-button" href="https://console.firebase.google.com/v1/r/project/ramadanmotaz-5570f/firestore/indexes?create_composite=ClFwcm9qZWN0cy9yYW1hZGFubW90YXotNTU3MGYvZGF0YWJhc2VzLyhkZWZhdWx0KS9jb2xsZWN0aW9uR3JvdXBzL3Njb3Jlcy9pbmRleGVzL18QARoJCgVzY29yZRACGg0KCXRvdGFsVGltZRABGgwKCF9fbmFtZV9fEAE" target="_blank">
-                                  إنشاء الفهرس في Firebase
-                              </a>
-                          </div>
-                      `;
-                  } else {
-                      statusDiv.innerHTML = `
-                          <div class="error-message">
-                              حدث خطأ في تحميل النتائج: ${error.message}
-                          </div>
-                      `;
-                  }
+                  document.getElementById('loading').classList.add('hidden');
+                  document.getElementById('no-results').classList.remove('hidden');
               }
           }
 
-          // تحميل النتائج عند فتح الصفحة
-          fetchScores();
-
-          // تحديث النتائج كل 30 ثانية
-          setInterval(fetchScores, 30000);
+          // تشغيل العرض عند تحميل الصفحة
+          displayTopPlayers();
       </script>
   </body>
   </html>
