@@ -4,8 +4,8 @@
       <meta charset="UTF-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
       <title>المتصدرون - مسابقة رمضان</title>
-      <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
-      <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+      <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
+      <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore-compat.js"></script>
       <style>
           body {
               font-family: 'Arial', sans-serif;
@@ -29,8 +29,31 @@
               border-radius: 5px;
               transition: all 0.3s ease;
           }
-          .leaderboard-item:hover {
-              transform: scale(1.02);
+          .error-message {
+              color: red;
+              padding: 10px;
+              margin: 10px 0;
+              background-color: #ffe6e6;
+              border-radius: 5px;
+          }
+          .create-index-message {
+              background-color: #fff3cd;
+              border: 1px solid #ffeeba;
+              color: #856404;
+              padding: 15px;
+              margin: 10px 0;
+              border-radius: 5px;
+          }
+          .create-index-button {
+              background-color: #ffc107;
+              color: #000;
+              padding: 10px 20px;
+              border: none;
+              border-radius: 5px;
+              cursor: pointer;
+              margin: 10px;
+              text-decoration: none;
+              display: inline-block;
           }
           button {
               background-color: #4CAF50;
@@ -40,33 +63,18 @@
               border-radius: 5px;
               cursor: pointer;
               margin: 10px;
-              font-size: 16px;
           }
-          button:hover {
-              background-color: #45a049;
-          }
-          .gold {
-              background-color: #FFD700;
-              color: #000;
-          }
-          .silver {
-              background-color: #C0C0C0;
-              color: #000;
-          }
-          .bronze {
-              background-color: #CD7F32;
-              color: #fff;
-          }
-          h1 {
-              color: #333;
-              margin-bottom: 20px;
-          }
+          .gold { background-color: #FFD700; }
+          .silver { background-color: #C0C0C0; }
+          .bronze { background-color: #CD7F32; }
       </style>
   </head>
   <body>
       <div class="container">
           <h1>المتصدرون</h1>
+          <div id="status"></div>
           <div id="leaderboard"></div>
+          <button onclick="fetchScores()">تحديث النتائج</button>
           <a href="index.html"><button>العودة للمسابقة</button></a>
       </div>
 
@@ -81,18 +89,34 @@
               measurementId: "G-WLVRQVRGHT"
           };
 
-          firebase.initializeApp(firebaseConfig);
-          const db = firebase.firestore();
+          let db;
+          try {
+              firebase.initializeApp(firebaseConfig);
+              db = firebase.firestore();
+          } catch (error) {
+              console.error('Firebase initialization error:', error);
+              document.getElementById('status').innerHTML = 
+                  `<div class="error-message">خطأ في تهيئة قاعدة البيانات: ${error.message}</div>`;
+          }
 
-          async function showLeaderboard() {
+          async function fetchScores() {
+              const statusDiv = document.getElementById('status');
               const leaderboardDiv = document.getElementById('leaderboard');
               
+              statusDiv.innerHTML = 'جاري تحميل النتائج...';
+              
               try {
+                  // محاولة جلب النتائج بترتيب بسيط أولاً
                   const snapshot = await db.collection('scores')
                       .orderBy('score', 'desc')
-                      .orderBy('totalTime')
                       .limit(10)
                       .get();
+
+                  if (snapshot.empty) {
+                      statusDiv.innerHTML = 'لا توجد نتائج بعد';
+                      leaderboardDiv.innerHTML = '';
+                      return;
+                  }
 
                   let html = '';
                   let rank = 1;
@@ -107,21 +131,49 @@
                           <div class="leaderboard-item ${className}">
                               #${rank} - ${data.playerName}<br>
                               النقاط: ${data.score}<br>
-                              الوقت: ${data.totalTime.toFixed(2)} ثانية
+                              الوقت: ${data.totalTime ? data.totalTime.toFixed(2) : 'N/A'} ثانية
                           </div>
                       `;
                       rank++;
                   });
 
-                  leaderboardDiv.innerHTML = html || 'لا توجد نتائج بعد';
+                  statusDiv.innerHTML = '';
+                  leaderboardDiv.innerHTML = html;
+
               } catch (error) {
-                  console.error('Error getting leaderboard:', error);
-                  leaderboardDiv.innerHTML = 'حدث خطأ في تحميل النتائج';
+                  console.error('Error fetching scores:', error);
+                  
+                  if (error.message.includes('requires an index')) {
+                      statusDiv.innerHTML = `
+                          <div class="create-index-message">
+                              <p>يحتاج النظام إلى إنشاء فهرس خاص في Firebase. يرجى اتباع الخطوات التالية:</p>
+                              <ol style="text-align: right">
+                                  <li>انقر على الزر أدناه للانتقال إلى لوحة تحكم Firebase</li>
+                                  <li>قم بتسجيل الدخول إذا لزم الأمر</li>
+                                  <li>انقر على "Create Index" في الصفحة التي ستفتح</li>
+                                  <li>انتظر حتى يتم إنشاء الفهرس (قد يستغرق بضع دقائق)</li>
+                                  <li>عد إلى هذه الصفحة وانقر على "تحديث النتائج"</li>
+                              </ol>
+                              <a class="create-index-button" href="https://console.firebase.google.com/v1/r/project/ramadanmotaz-5570f/firestore/indexes?create_composite=ClFwcm9qZWN0cy9yYW1hZGFubW90YXotNTU3MGYvZGF0YWJhc2VzLyhkZWZhdWx0KS9jb2xsZWN0aW9uR3JvdXBzL3Njb3Jlcy9pbmRleGVzL18QARoJCgVzY29yZRACGg0KCXRvdGFsVGltZRABGgwKCF9fbmFtZV9fEAE" target="_blank">
+                                  إنشاء الفهرس في Firebase
+                              </a>
+                          </div>
+                      `;
+                  } else {
+                      statusDiv.innerHTML = `
+                          <div class="error-message">
+                              حدث خطأ في تحميل النتائج: ${error.message}
+                          </div>
+                      `;
+                  }
               }
           }
 
-          showLeaderboard();
-          setInterval(showLeaderboard, 30000);
+          // تحميل النتائج عند فتح الصفحة
+          fetchScores();
+
+          // تحديث النتائج كل 30 ثانية
+          setInterval(fetchScores, 30000);
       </script>
   </body>
   </html>
