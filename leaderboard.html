@@ -41,19 +41,9 @@
           .gradient-bronze {
               background: linear-gradient(135deg, #CD7F32 0%, #8B4513 100%);
           }
-
-          .loading {
-              animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-          }
-
-          @keyframes pulse {
-              0%, 100% { opacity: 1; }
-              50% { opacity: .5; }
-          }
       </style>
   </head>
   <body class="bg-gradient-to-b from-blue-900 to-indigo-950 min-h-screen">
-      <!-- شريط التاريخ -->
       <div class="bg-white/5 backdrop-blur-sm border-b border-white/10 p-3 text-white text-center">
           <div class="max-w-3xl mx-auto flex justify-between items-center">
               <div class="flex items-center gap-2">
@@ -68,24 +58,19 @@
       </div>
 
       <div class="container mx-auto px-4 py-12">
-          <!-- العنوان -->
           <div class="text-center mb-16">
               <h1 class="text-4xl font-bold text-yellow-400 mb-4">🌙 متصدرو اليوم 🌙</h1>
               <p class="text-white/80">أفضل ثلاثة متسابقين في فوازير رمضان</p>
           </div>
 
-          <!-- قائمة المتصدرين -->
           <div class="max-w-3xl mx-auto">
-              <div id="loading" class="text-center text-white loading mb-8">
-                  <i data-lucide="loader" class="w-8 h-8 mx-auto mb-2"></i>
+              <div id="loading" class="text-center text-white mb-8">
+                  <i data-lucide="loader" class="w-8 h-8 mx-auto mb-2 animate-spin"></i>
                   جاري تحميل النتائج...
               </div>
 
-              <div id="winners-container" class="space-y-4 hidden">
-                  <!-- سيتم ملء هذا القسم بواسطة JavaScript -->
-              </div>
+              <div id="winners-container" class="space-y-4 hidden"></div>
 
-              <!-- رسالة عدم وجود نتائج -->
               <div id="no-results" class="hidden">
                   <div class="bg-white/10 backdrop-blur-lg rounded-2xl p-8 text-center">
                       <i data-lucide="info" class="w-16 h-16 mx-auto text-yellow-400 mb-4"></i>
@@ -111,59 +96,53 @@
               measurementId: "G-WLVRQVRGHT"
           };
 
-          // تهيئة Firebase
           firebase.initializeApp(firebaseConfig);
           const db = firebase.firestore();
-
-          // تهيئة أيقونات Lucide
           lucide.createIcons();
 
-          // تنسيق التاريخ بالعربية
-          const arabicMonths = [
-              "يناير", "فبراير", "مارس", "إبريل", "مايو", "يونيو",
-              "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"
-          ];
+          // تحديث التاريخ والوقت
+          function updateDateTime() {
+              const now = new Date();
+              const timeStr = now.toLocaleTimeString('ar-SA');
+              document.getElementById('current-date').textContent = timeStr;
+          }
+          setInterval(updateDateTime, 1000);
+          updateDateTime();
 
-          function formatDate(date) {
-              const day = date.getDate();
-              const month = arabicMonths[date.getMonth()];
-              const year = date.getFullYear();
-              return `${day} ${month} ${year}`;
+          function formatTime(time) {
+              // التأكد من أن القيمة رقمية
+              const numericTime = parseFloat(time);
+              if (isNaN(numericTime)) return "0.00";
+              // تنسيق الوقت برقمين عشريين
+              return numericTime.toFixed(2);
           }
 
-          // عرض التاريخ الحالي
-          document.getElementById('current-date').textContent = formatDate(new Date());
-
-          // إنشاء بطاقة الفائز
           function createWinnerCard(player, rank) {
               const rankConfig = {
                   1: {
                       gradient: 'gradient-gold',
                       icon: '👑',
                       label: 'المركز الأول',
-                      iconClass: 'crown',
-                      scale: 'scale-105'
+                      iconClass: 'crown'
                   },
                   2: {
                       gradient: 'gradient-silver',
                       icon: '🥈',
-                      label: 'المركز الثاني',
-                      iconClass: '',
-                      scale: 'scale-100'
+                      label: 'المركز الثاني'
                   },
                   3: {
                       gradient: 'gradient-bronze',
                       icon: '🥉',
-                      label: 'المركز الثالث',
-                      iconClass: '',
-                      scale: 'scale-95'
+                      label: 'المركز الثالث'
                   }
               };
 
               const config = rankConfig[rank];
-              
+              // تنسيق الوقت برقمين عشريين
+              const formattedTime = formatTime(player.totalTime);
+
               return `
-                  <div class="winner-card ${config.scale}">
+                  <div class="winner-card">
                       <div class="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border-2 border-${rank === 1 ? 'yellow' : rank === 2 ? 'gray' : 'yellow'}-400/20">
                           <div class="flex items-center gap-4">
                               <div class="flex-shrink-0">
@@ -181,7 +160,7 @@
                                       </div>
                                       <div class="text-yellow-400">
                                           <i data-lucide="clock" class="w-4 h-4 inline-block mr-1"></i>
-                                          ${player.totalTime.toFixed(1)} ثانية
+                                          ${formattedTime} ثانية
                                       </div>
                                   </div>
                               </div>
@@ -191,38 +170,36 @@
               `;
           }
 
-          // جلب وعرض المتصدرين
           async function displayTopPlayers() {
               try {
-                  // الحصول على بداية ونهاية اليوم
-                  const today = new Date();
-                  today.setHours(0, 0, 0, 0);
-                  const tomorrow = new Date(today);
-                  tomorrow.setDate(tomorrow.getDate() + 1);
+                  const now = new Date();
+                  const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                  const endOfDay = new Date(startOfDay);
+                  endOfDay.setDate(endOfDay.getDate() + 1);
 
-                  // جلب النتائج من Firebase
                   const snapshot = await db.collection('scores')
-                      .where('date', '>=', today.toISOString())
-                      .where('date', '<', tomorrow.toISOString())
+                      .where('timestamp', '>=', firebase.firestore.Timestamp.fromDate(startOfDay))
+                      .where('timestamp', '<', firebase.firestore.Timestamp.fromDate(endOfDay))
                       .get();
 
-                  // تحويل النتائج إلى مصفوفة وترتيبها
                   const scores = [];
                   snapshot.forEach(doc => {
-                      scores.push(doc.data());
+                      const data = doc.data();
+                      scores.push({
+                          playerName: data.playerName,
+                          score: data.score,
+                          totalTime: data.totalTime,
+                          timestamp: data.timestamp
+                      });
                   });
 
-                  // ترتيب النتائج حسب النقاط والوقت
                   const topPlayers = scores
                       .sort((a, b) => {
-                          if (b.score !== a.score) {
-                              return b.score - a.score;
-                          }
-                          return a.totalTime - b.totalTime;
+                          if (b.score !== a.score) return b.score - a.score;
+                          return parseFloat(a.totalTime) - parseFloat(b.totalTime);
                       })
                       .slice(0, 3);
 
-                  // إخفاء شاشة التحميل
                   document.getElementById('loading').classList.add('hidden');
 
                   if (topPlayers.length > 0) {
@@ -231,20 +208,19 @@
                       winnersContainer.innerHTML = topPlayers
                           .map((player, index) => createWinnerCard(player, index + 1))
                           .join('');
-                      
-                      // تحديث أيقونات Lucide للبطاقات الجديدة
                       lucide.createIcons();
                   } else {
                       document.getElementById('no-results').classList.remove('hidden');
                   }
               } catch (error) {
-                  console.error('Error fetching scores:', error);
+                  console.error('Error:', error);
                   document.getElementById('loading').classList.add('hidden');
                   document.getElementById('no-results').classList.remove('hidden');
               }
           }
 
-          // تشغيل العرض عند تحميل الصفحة
+          // تحديث النتائج كل دقيقة
+          setInterval(displayTopPlayers, 60000);
           displayTopPlayers();
       </script>
   </body>
