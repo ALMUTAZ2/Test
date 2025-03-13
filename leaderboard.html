@@ -1,0 +1,127 @@
+  <!DOCTYPE html>
+  <html dir="rtl" lang="ar">
+  <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>المتصدرون - مسابقة رمضان</title>
+      <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+      <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+      <style>
+          body {
+              font-family: 'Arial', sans-serif;
+              margin: 0;
+              padding: 20px;
+              background-color: #f0f0f0;
+              text-align: center;
+          }
+          .container {
+              max-width: 600px;
+              margin: 0 auto;
+              background-color: white;
+              padding: 20px;
+              border-radius: 10px;
+              box-shadow: 0 0 10px rgba(0,0,0,0.1);
+          }
+          .leaderboard-item {
+              margin: 10px 0;
+              padding: 15px;
+              background-color: #f8f8f8;
+              border-radius: 5px;
+              transition: all 0.3s ease;
+          }
+          .leaderboard-item:hover {
+              transform: scale(1.02);
+          }
+          button {
+              background-color: #4CAF50;
+              color: white;
+              padding: 10px 20px;
+              border: none;
+              border-radius: 5px;
+              cursor: pointer;
+              margin: 10px;
+              font-size: 16px;
+          }
+          button:hover {
+              background-color: #45a049;
+          }
+          .gold {
+              background-color: #FFD700;
+              color: #000;
+          }
+          .silver {
+              background-color: #C0C0C0;
+              color: #000;
+          }
+          .bronze {
+              background-color: #CD7F32;
+              color: #fff;
+          }
+          h1 {
+              color: #333;
+              margin-bottom: 20px;
+          }
+      </style>
+  </head>
+  <body>
+      <div class="container">
+          <h1>المتصدرون</h1>
+          <div id="leaderboard"></div>
+          <a href="index.html"><button>العودة للمسابقة</button></a>
+      </div>
+
+      <script>
+          const firebaseConfig = {
+              apiKey: "AIzaSyC5RYK1lGaJaMQJmOH85cqNgv6m7rbLS_A",
+              authDomain: "ramadanmotaz-5570f.firebaseapp.com",
+              projectId: "ramadanmotaz-5570f",
+              storageBucket: "ramadanmotaz-5570f.firebasestorage.app",
+              messagingSenderId: "595667154066",
+              appId: "1:595667154066:web:80ba616566ec55a5efe24b",
+              measurementId: "G-WLVRQVRGHT"
+          };
+
+          firebase.initializeApp(firebaseConfig);
+          const db = firebase.firestore();
+
+          async function showLeaderboard() {
+              const leaderboardDiv = document.getElementById('leaderboard');
+              
+              try {
+                  const snapshot = await db.collection('scores')
+                      .orderBy('score', 'desc')
+                      .orderBy('totalTime')
+                      .limit(10)
+                      .get();
+
+                  let html = '';
+                  let rank = 1;
+
+                  snapshot.forEach(doc => {
+                      const data = doc.data();
+                      const className = rank === 1 ? 'gold' : 
+                                      rank === 2 ? 'silver' : 
+                                      rank === 3 ? 'bronze' : '';
+                      
+                      html += `
+                          <div class="leaderboard-item ${className}">
+                              #${rank} - ${data.playerName}<br>
+                              النقاط: ${data.score}<br>
+                              الوقت: ${data.totalTime.toFixed(2)} ثانية
+                          </div>
+                      `;
+                      rank++;
+                  });
+
+                  leaderboardDiv.innerHTML = html || 'لا توجد نتائج بعد';
+              } catch (error) {
+                  console.error('Error getting leaderboard:', error);
+                  leaderboardDiv.innerHTML = 'حدث خطأ في تحميل النتائج';
+              }
+          }
+
+          showLeaderboard();
+          setInterval(showLeaderboard, 30000);
+      </script>
+  </body>
+  </html>
