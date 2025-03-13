@@ -194,14 +194,16 @@
           // جلب وعرض المتصدرين
           async function displayTopPlayers() {
               try {
-                  // الحصول على تاريخ اليوم
+                  // الحصول على بداية ونهاية اليوم
                   const today = new Date();
                   today.setHours(0, 0, 0, 0);
+                  const tomorrow = new Date(today);
+                  tomorrow.setDate(tomorrow.getDate() + 1);
 
                   // جلب النتائج من Firebase
                   const snapshot = await db.collection('scores')
-                      .where('timestamp', '>=', today)
-                      .orderBy('timestamp', 'desc')
+                      .where('date', '>=', today.toISOString())
+                      .where('date', '<', tomorrow.toISOString())
                       .get();
 
                   // تحويل النتائج إلى مصفوفة وترتيبها
