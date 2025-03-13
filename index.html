@@ -3,89 +3,161 @@
   <head>
       <meta charset="UTF-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>مسابقة رمضان</title>
+      <title>فوازير رمضان 1446</title>
+      <script src="https://cdn.tailwindcss.com"></script>
+      <script src="https://unpkg.com/lucide@latest"></script>
+      <!-- Firebase -->
       <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
       <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
       <style>
-          body {
-              font-family: 'Arial', sans-serif;
-              margin: 0;
-              padding: 20px;
-              background-color: #f0f0f0;
-              text-align: center;
+          @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap');
+          
+          * {
+              font-family: 'Cairo', sans-serif;
           }
-          .container {
-              max-width: 600px;
-              margin: 0 auto;
-              background-color: white;
-              padding: 20px;
-              border-radius: 10px;
-              box-shadow: 0 0 10px rgba(0,0,0,0.1);
+
+          @keyframes floatMoon {
+              0% { transform: translateY(0px); }
+              50% { transform: translateY(-10px); }
+              100% { transform: translateY(0px); }
           }
-          .hidden {
-              display: none;
+
+          .floating-moon {
+              animation: floatMoon 3s ease-in-out infinite;
           }
-          button {
-              background-color: #4CAF50;
-              color: white;
-              padding: 10px 20px;
-              border: none;
-              border-radius: 5px;
-              cursor: pointer;
-              margin: 10px;
-              font-size: 16px;
+
+          @keyframes twinkle {
+              0%, 100% { opacity: 1; }
+              50% { opacity: 0.3; }
           }
-          button:hover {
-              background-color: #45a049;
+
+          .star {
+              position: absolute;
+              color: #FCD34D;
+              animation: twinkle 2s ease-in-out infinite;
           }
-          input {
-              padding: 10px;
-              margin: 10px;
-              width: 200px;
-              font-size: 16px;
-              border: 1px solid #ddd;
-              border-radius: 5px;
+
+          .option-correct {
+              background-color: rgba(34, 197, 94, 0.2) !important;
+              border-color: rgb(34, 197, 94) !important;
           }
-          .question {
-              font-size: 1.2em;
-              margin: 20px 0;
-              font-weight: bold;
-          }
-          .options {
-              display: flex;
-              flex-direction: column;
-              gap: 10px;
-              align-items: center;
-          }
-          #timer {
-              font-size: 1.2em;
-              margin: 10px 0;
-              color: #666;
+
+          .option-wrong {
+              background-color: rgba(239, 68, 68, 0.2) !important;
+              border-color: rgb(239, 68, 68) !important;
           }
       </style>
   </head>
-  <body>
-      <div class="container">
-          <div id="start-screen">
-              <h1>مسابقة رمضان</h1>
-              <input type="text" id="player-name" placeholder="أدخل اسمك">
-              <button onclick="startGame()">ابدأ المسابقة</button>
+  <body class="bg-gradient-to-b from-blue-900 to-indigo-950 min-h-screen">
+      <div id="app">
+          <!-- شريط التاريخ -->
+          <div class="bg-white/5 backdrop-blur-sm border-b border-white/10 p-3 text-white text-center">
+              <div class="max-w-3xl mx-auto flex justify-between items-center">
+                  <div class="flex items-center gap-2">
+                      <i data-lucide="calendar" class="w-5 h-5 text-green-400"></i>
+                      <span id="hijri-date" class="text-green-400">رمضان 1446هـ</span>
+                  </div>
+                  <div class="flex items-center gap-2">
+                      <i data-lucide="calendar-days" class="w-5 h-5 text-yellow-400"></i>
+                      <span id="gregorian-date" class="text-yellow-400">2025</span>
+                  </div>
+              </div>
           </div>
 
-          <div id="quiz-screen" class="hidden">
-              <div id="timer">الوقت: <span id="time">0</span></div>
-              <div id="question" class="question"></div>
-              <div id="options" class="options"></div>
+          <!-- شاشة البداية -->
+          <div id="start-screen" class="min-h-[calc(100vh-64px)] text-white flex items-center justify-center p-6">
+              <div class="max-w-md w-full">
+                  <div class="bg-white/10 backdrop-blur-lg border-2 border-green-400/20 rounded-3xl p-8">
+                      <div class="text-center space-y-6">
+                          <div class="relative h-32">
+                              <div class="floating-moon">
+                                  <i data-lucide="moon" class="w-20 h-20 mx-auto text-yellow-400"></i>
+                              </div>
+                              <div class="absolute bottom-0 w-full">
+                                  <i data-lucide="star" class="star w-4 h-4" style="left: calc(50% - 20px);"></i>
+                                  <i data-lucide="star" class="star w-4 h-4" style="left: 50%;"></i>
+                                  <i data-lucide="star" class="star w-4 h-4" style="left: calc(50% + 20px);"></i>
+                              </div>
+                          </div>
+                          <h1 class="text-3xl font-bold text-yellow-400">فوازير رمضان</h1>
+                          <div class="space-y-4">
+                              <label class="text-lg block text-center mb-2">
+                                  أدخل اسمك للمشاركة في المسابقة
+                              </label>
+                              <input
+                                  type="text"
+                                  id="player-name"
+                                  placeholder="الاسم الكريم"
+                                  class="w-full bg-white/5 border-2 border-green-400/20 text-center text-lg py-6 rounded-xl text-white"
+                              >
+                          </div>
+                          <button
+                              id="start-button"
+                              class="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white py-6 rounded-xl text-lg flex items-center justify-center gap-2"
+                              disabled
+                          >
+                              <i data-lucide="sparkles" class="w-5 h-5"></i>
+                              بدء المسابقة
+                          </button>
+                      </div>
+                  </div>
+              </div>
           </div>
 
-          <div id="results-screen" class="hidden">
-              <h2>النتيجة النهائية</h2>
-              <div id="final-score"></div>
-              <a href="leaderboard.html"><button>عرض المتصدرين</button></a>
+          <!-- شاشة الأسئلة -->
+          <div id="quiz-screen" class="min-h-screen text-white p-6 hidden">
+              <div class="max-w-3xl mx-auto">
+                  <div class="text-center mb-8">
+                      <h1 class="text-3xl font-bold text-yellow-400 mb-2">فوازير رمضان</h1>
+                      <p id="player-welcome" class="text-lg text-green-400"></p>
+                  </div>
+                  <div class="bg-white/10 backdrop-blur-lg border-2 border-green-400/20 rounded-2xl p-6">
+                      <div class="flex justify-between items-center mb-4">
+                          <div class="flex items-center gap-2">
+                              <i data-lucide="clock" class="w-5 h-5"></i>
+                              <span id="timer" class="text-xl font-bold">10</span>
+                          </div>
+                          <div id="question-counter" class="text-lg"></div>
+                      </div>
+                      <div class="relative h-2 bg-gray-700/50 rounded-full overflow-hidden mb-6">
+                          <div id="timer-bar" class="absolute top-0 left-0 h-full bg-green-400 transition-all duration-1000"></div>
+                      </div>
+                      <h3 id="question-text" class="text-xl font-semibold mb-6 pr-4 border-r-4 border-green-400"></h3>
+                      <div id="options-container" class="space-y-4"></div>
+                  </div>
+              </div>
+          </div>
+
+          <!-- شاشة النتائج -->
+          <div id="results-screen" class="min-h-screen text-white p-6 hidden">
+              <div class="max-w-2xl mx-auto">
+                  <div class="bg-white/10 backdrop-blur-lg border-2 border-yellow-400/30 rounded-2xl p-8">
+                      <i data-lucide="trophy" class="w-16 h-16 mx-auto text-yellow-400 mb-4"></i>
+                      <h3 class="text-2xl font-bold text-yellow-400 mb-4 text-center">النتيجة النهائية</h3>
+                      <p id="final-name" class="text-xl mb-4 text-center"></p>
+                      <p id="final-score" class="text-xl mb-6 text-center"></p>
+                      <div id="answers-review" class="space-y-4 mt-8"></div>
+                      <div class="flex gap-4 mt-6">
+                          <button
+                              onclick="location.reload()"
+                              class="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white py-4 rounded-xl text-lg"
+                          >
+                              حاول مرة أخرى
+                          </button>
+                          <button
+                              onclick="window.location.href='leaderboard.html'"
+                              class="flex-1 bg-gradient-to-r from-yellow-600 to-yellow-700 hover:from-yellow-700 hover:to-yellow-800 text-white py-4 rounded-xl text-lg"
+                          >
+                              قائمة المتصدرين
+                          </button>
+                      </div>
+                  </div>
+              </div>
           </div>
       </div>
 
       <script>
+          // تهيئة Firebase
           const firebaseConfig = {
               apiKey: "AIzaSyC5RYK1lGaJaMQJmOH85cqNgv6m7rbLS_A",
               authDomain: "ramadanmotaz-5570f.firebaseapp.com",
@@ -96,125 +168,245 @@
               measurementId: "G-WLVRQVRGHT"
           };
 
+          // تهيئة Firebase
           firebase.initializeApp(firebaseConfig);
           const db = firebase.firestore();
 
+          // دالة للحصول على IP المستخدم
+          async function getIPAddress() {
+              try {
+                  const response = await fetch('https://api.ipify.org?format=json');
+                  const data = await response.json();
+                  return data.ip;
+              } catch (error) {
+                  console.error('Error getting IP:', error);
+                  return 'unknown';
+              }
+          }
+
+          // دالة لحفظ النتيجة في Firebase
+          async function saveScore(playerData) {
+              try {
+                  const ip = await getIPAddress();
+                  const timestamp = firebase.firestore.FieldValue.serverTimestamp();
+                  
+                  await db.collection('scores').add({
+                      playerName: playerData.playerName,
+                      score: playerData.score,
+                      totalTime: playerData.totalTime,
+                      ip: ip,
+                      timestamp: timestamp,
+                      date: new Date().toISOString()
+                  });
+
+                  console.log('Score saved successfully');
+              } catch (error) {
+                  console.error('Error saving score:', error);
+              }
+          }
+
+          // تهيئة أيقونات Lucide
+          lucide.createIcons();
+
+          // بنك الأسئلة
+          const questionBank = [
+              {
+                  question: "ما هي السورة التي تعدل ثلث القرآن؟",
+                  options: ["سورة الفاتحة", "سورة الإخلاص", "سورة الكوثر", "سورة العصر"],
+                  correct: 1
+              },
+              {
+                  question: "كم مرة ذُكرت كلمة 'رمضان' في القرآن الكريم؟",
+                  options: ["مرتين", "ثلاث مرات", "مرة واحدة", "أربع مرات"],
+                  correct: 2
+              },
+              {
+                  question: "ما هو أول ما نزل من القرآن الكريم؟",
+                  options: ["بسم الله الرحمن الرحيم", "يا أيها المدثر", "الحمد لله رب العالمين", "اقرأ باسم ربك"],
+                  correct: 3
+              },
+              {
+                  question: "في أي غزوة نزلت سورة الأنفال؟",
+                  options: ["غزوة أحد", "غزوة الخندق", "غزوة بدر", "غزوة حنين"],
+                  correct: 2
+              },
+              {
+                  question: "ما هو الشهر الذي فُرض فيه الصيام على المسلمين؟",
+                  options: ["شعبان", "رمضان", "محرم", "رجب"],
+                  correct: 1
+              }
+          ];
+
+          // حالة اللعبة
+          const gameState = {
+              playerName: "",
+              currentQuestion: 0,
+              score: 0,
+              answers: [],
+              timeLeft: 10,
+              timer: null,
+              questions: [],
+              questionStartTime: null,
+              questionTimes: [],
+              totalTime: 0
+          };
+
+          // العناصر
           const elements = {
               startScreen: document.getElementById('start-screen'),
               quizScreen: document.getElementById('quiz-screen'),
               resultsScreen: document.getElementById('results-screen'),
               playerNameInput: document.getElementById('player-name'),
-              questionElement: document.getElementById('question'),
-              optionsElement: document.getElementById('options'),
-              timeElement: document.getElementById('time')
+              startButton: document.getElementById('start-button'),
+              playerWelcome: document.getElementById('player-welcome'),
+              questionCounter: document.getElementById('question-counter'),
+              questionText: document.getElementById('question-text'),
+              optionsContainer: document.getElementById('options-container'),
+              timer: document.getElementById('timer'),
+              timerBar: document.getElementById('timer-bar')
           };
 
-          const gameState = {
-              playerName: '',
-              currentQuestion: 0,
-              score: 0,
-              startTime: 0,
-              totalTime: 0,
-              questionTimes: []
-          };
-
-          const questions = [
-              {
-                  question: "كم عدد ركعات صلاة التراويح؟",
-                  options: ["8 ركعات", "20 ركعة", "12 ركعة", "16 ركعة"],
-                  correct: 1
-              },
-              {
-                  question: "في أي ليلة من رمضان تُتحرى ليلة القدر؟",
-                  options: ["ليلة 27", "ليلة 29", "ليلة 21", "ليلة 23"],
-                  correct: 0
-              },
-              {
-                  question: "ما هو أول مسجد بُني في الإسلام؟",
-                  options: ["المسجد الحرام", "المسجد النبوي", "مسجد قباء", "المسجد الأقصى"],
-                  correct: 2
-              }
-          ];
-
-          function startGame() {
-              if (!elements.playerNameInput.value.trim()) {
-                  alert('الرجاء إدخال اسمك');
-                  return;
-              }
-
+          // بدء المسابقة
+          function startQuiz() {
               gameState.playerName = elements.playerNameInput.value.trim();
-              gameState.startTime = Date.now();
+              gameState.questions = questionBank;
+              
               elements.startScreen.classList.add('hidden');
               elements.quizScreen.classList.remove('hidden');
+              elements.playerWelcome.textContent = `مرحباً ${gameState.playerName}!`;
+              
               showQuestion();
+          }
+
+          // عرض السؤال
+          function showQuestion() {
+              const question = gameState.questions[gameState.currentQuestion];
+              elements.questionCounter.textContent = `السؤال ${gameState.currentQuestion + 1} من ${gameState.questions.length}`;
+              elements.questionText.textContent = question.question;
+              
+              elements.optionsContainer.innerHTML = question.options.map((option, index) => `
+                  <button
+                      onclick="handleAnswer(${index})"
+                      class="w-full text-right bg-white/5 hover:bg-white/10 border-2 border-green-400/20 p-4 rounded-xl transition-colors"
+                  >
+                      ${option}
+                  </button>
+              `).join('');
+
+              gameState.questionStartTime = Date.now();
               startTimer();
           }
 
-          function showQuestion() {
-              if (gameState.currentQuestion >= questions.length) {
-                  showResults();
-                  return;
+          // معالجة الإجابة
+          function handleAnswer(selectedOption) {
+              clearInterval(gameState.timer);
+              const answerTime = (Date.now() - gameState.questionStartTime) / 1000;
+              gameState.questionTimes.push(answerTime);
+              
+              const question = gameState.questions[gameState.currentQuestion];
+              const isCorrect = selectedOption === question.correct;
+              
+              // حساب النقاط بناءً على السرعة
+              let points = 0;
+              if (isCorrect) {
+                  if (answerTime <= 3) points = 100;
+                  else if (answerTime <= 5) points = 80;
+                  else if (answerTime <= 7) points = 60;
+                  else points = 40;
+              }
+              
+              gameState.score += points;
+              gameState.totalTime += answerTime;
+              
+              const options = elements.optionsContainer.children;
+              options[selectedOption].classList.add(isCorrect ? 'option-correct' : 'option-wrong');
+              if (!isCorrect) {
+                  options[question.correct].classList.add('option-correct');
               }
 
-              const question = questions[gameState.currentQuestion];
-              elements.questionElement.textContent = question.question;
-              elements.optionsElement.innerHTML = '';
-
-              question.options.forEach((option, index) => {
-                  const button = document.createElement('button');
-                  button.textContent = option;
-                  button.onclick = () => checkAnswer(index);
-                  elements.optionsElement.appendChild(button);
+              gameState.answers.push({
+                  question: question.question,
+                  selectedAnswer: question.options[selectedOption],
+                  correctAnswer: question.options[question.correct],
+                  isCorrect: isCorrect,
+                  time: answerTime,
+                  points: points
               });
+
+              setTimeout(() => {
+                  if (gameState.currentQuestion < gameState.questions.length - 1) {
+                      gameState.currentQuestion++;
+                      showQuestion();
+                  } else {
+                      showResults();
+                  }
+              }, 1500);
           }
 
-          function checkAnswer(selectedIndex) {
-              const question = questions[gameState.currentQuestion];
-              const timeTaken = (Date.now() - gameState.startTime) / 1000;
-              gameState.questionTimes.push(timeTaken);
-
-              if (selectedIndex === question.correct) {
-                  gameState.score += 1;
-              }
-
-              gameState.currentQuestion += 1;
-              showQuestion();
+          // بدء المؤقت
+          function startTimer() {
+              gameState.timeLeft = 10;
+              elements.timer.textContent = gameState.timeLeft;
+              elements.timerBar.style.width = '100%';
+              
+              clearInterval(gameState.timer);
+              gameState.timer = setInterval(() => {
+                  gameState.timeLeft--;
+                  elements.timer.textContent = gameState.timeLeft;
+                  elements.timerBar.style.width = `${(gameState.timeLeft / 10) * 100}%`;
+                  
+                  if (gameState.timeLeft <= 0) {
+                      handleAnswer(-1);
+                  }
+              }, 1000);
           }
 
-          function showResults() {
-              gameState.totalTime = (Date.now() - gameState.startTime) / 1000;
+          // عرض النتائج
+          async function showResults() {
               elements.quizScreen.classList.add('hidden');
               elements.resultsScreen.classList.remove('hidden');
 
-              const result = {
+              const playerData = {
                   playerName: gameState.playerName,
                   score: gameState.score,
-                  totalTime: gameState.totalTime,
-                  questionTimes: gameState.questionTimes,
-                  timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                  totalTime: gameState.totalTime
               };
 
-              db.collection('scores').add(result)
-                  .then(() => {
-                      console.log('تم حفظ النتيجة بنجاح');
-                  })
-                  .catch((error) => {
-                      console.error('خطأ في حفظ النتيجة:', error);
-                  });
+              // حفظ النتيجة في Firebase
+              await saveScore(playerData);
 
+              document.getElementById('final-name').textContent = `الاسم: ${gameState.playerName}`;
               document.getElementById('final-score').innerHTML = `
-                  الاسم: ${gameState.playerName}<br>
-                  النقاط: ${gameState.score} من ${questions.length}<br>
-                  الوقت المستغرق: ${gameState.totalTime.toFixed(2)} ثانية
+                  النقاط: ${gameState.score}<br>
+                  الوقت الإجمالي: ${gameState.totalTime.toFixed(2)} ثانية
               `;
+
+              const answersHtml = gameState.answers.map((answer, index) => `
+                  <div class="bg-white/5 p-4 rounded-xl">
+                      <div class="font-bold mb-2">السؤال ${index + 1}</div>
+                      <div class="text-sm opacity-90 mb-2">${answer.question}</div>
+                      <div class="text-sm ${answer.isCorrect ? 'text-green-400' : 'text-red-400'}">
+                          إجابتك: ${answer.selectedAnswer}
+                          ${!answer.isCorrect ? `<br>الإجابة الصحيحة: ${answer.correctAnswer}` : ''}
+                      </div>
+                      <div class="text-sm mt-2">
+                          الوقت: ${answer.time.toFixed(2)} ثانية
+                          <br>
+                          النقاط: ${answer.points}
+                      </div>
+                  </div>
+              `).join('');
+
+              document.getElementById('answers-review').innerHTML = answersHtml;
           }
 
-          function startTimer() {
-              setInterval(() => {
-                  const currentTime = (Date.now() - gameState.startTime) / 1000;
-                  elements.timeElement.textContent = currentTime.toFixed(1);
-              }, 100);
-          }
+          // تفعيل زر البدء عند إدخال الاسم
+          elements.playerNameInput.addEventListener('input', () => {
+              elements.startButton.disabled = !elements.playerNameInput.value.trim();
+          });
+
+          // إضافة مستمع لزر البدء
+          elements.startButton.addEventListener('click', startQuiz);
       </script>
   </body>
   </html>
