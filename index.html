@@ -1,145 +1,220 @@
   <!DOCTYPE html>
-  <html lang="en">
+  <html dir="rtl" lang="ar">
   <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Competition & Leaderboard</title>
-    <style>
-      body {
-        font-family: Arial, sans-serif;
-        margin: 20px;
-      }
-      h1, h2 {
-        text-align: center;
-      }
-      .form-container, .leaderboard {
-        margin: 20px auto;
-        max-width: 600px;
-        padding: 20px;
-        border: 1px solid #ddd;
-        border-radius: 5px;
-        background: #f9f9f9;
-      }
-      .form-container input, .form-container button {
-        width: 100%;
-        padding: 10px;
-        margin: 10px 0;
-        font-size: 16px;
-      }
-      ul {
-        list-style: none;
-        padding: 0;
-      }
-      li {
-        padding: 10px;
-        margin: 5px 0;
-        background: #f4f4f4;
-        border: 1px solid #ddd;
-        border-radius: 5px;
-      }
-      .top-player {
-        font-weight: bold;
-        color: #2c3e50;
-      }
-    </style>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>مسابقة رمضان</title>
+      <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+      <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+      <style>
+          body {
+              font-family: 'Arial', sans-serif;
+              margin: 0;
+              padding: 20px;
+              background-color: #f0f0f0;
+              text-align: center;
+          }
+          .container {
+              max-width: 600px;
+              margin: 0 auto;
+              background-color: white;
+              padding: 20px;
+              border-radius: 10px;
+              box-shadow: 0 0 10px rgba(0,0,0,0.1);
+          }
+          .hidden {
+              display: none;
+          }
+          button {
+              background-color: #4CAF50;
+              color: white;
+              padding: 10px 20px;
+              border: none;
+              border-radius: 5px;
+              cursor: pointer;
+              margin: 10px;
+              font-size: 16px;
+          }
+          button:hover {
+              background-color: #45a049;
+          }
+          input {
+              padding: 10px;
+              margin: 10px;
+              width: 200px;
+              font-size: 16px;
+              border: 1px solid #ddd;
+              border-radius: 5px;
+          }
+          .question {
+              font-size: 1.2em;
+              margin: 20px 0;
+              font-weight: bold;
+          }
+          .options {
+              display: flex;
+              flex-direction: column;
+              gap: 10px;
+              align-items: center;
+          }
+          #timer {
+              font-size: 1.2em;
+              margin: 10px 0;
+              color: #666;
+          }
+      </style>
   </head>
   <body>
-    <h1>Competition & Leaderboard</h1>
-    
-    <!-- Form to Add Player -->
-    <div class="form-container">
-      <h2>Add Player Result</h2>
-      <input type="text" id="playerName" placeholder="Player Name" required>
-      <input type="number" id="score" placeholder="Score" required>
-      <input type="number" id="totalTime" placeholder="Total Time (seconds)" required>
-      <button id="addResultButton">Add Result</button>
-    </div>
+      <div class="container">
+          <div id="start-screen">
+              <h1>مسابقة رمضان</h1>
+              <input type="text" id="player-name" placeholder="أدخل اسمك">
+              <button onclick="startGame()">ابدأ المسابقة</button>
+          </div>
 
-    <!-- Leaderboard -->
-    <div class="leaderboard">
-      <h2>Top 3 Players</h2>
-      <ul id="top-players"></ul>
+          <div id="quiz-screen" class="hidden">
+              <div id="timer">الوقت: <span id="time">0</span></div>
+              <div id="question" class="question"></div>
+              <div id="options" class="options"></div>
+          </div>
 
-      <h2>All Players</h2>
-      <ul id="all-players"></ul>
-    </div>
+          <div id="results-screen" class="hidden">
+              <h2>النتيجة النهائية</h2>
+              <div id="final-score"></div>
+              <a href="leaderboard.html"><button>عرض المتصدرين</button></a>
+          </div>
+      </div>
 
-    <script type="module">
-      // Import Firebase SDK
-      import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
-      import { getFirestore, collection, addDoc, query, orderBy, limit, getDocs } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
+      <script>
+          const firebaseConfig = {
+              apiKey: "AIzaSyC5RYK1lGaJaMQJmOH85cqNgv6m7rbLS_A",
+              authDomain: "ramadanmotaz-5570f.firebaseapp.com",
+              projectId: "ramadanmotaz-5570f",
+              storageBucket: "ramadanmotaz-5570f.firebasestorage.app",
+              messagingSenderId: "595667154066",
+              appId: "1:595667154066:web:80ba616566ec55a5efe24b",
+              measurementId: "G-WLVRQVRGHT"
+          };
 
-      // Firebase Configuration
-      const firebaseConfig = {
-        apiKey: "YOUR_API_KEY",
-        authDomain: "YOUR_AUTH_DOMAIN",
-        projectId: "YOUR_PROJECT_ID",
-        storageBucket: "YOUR_STORAGE_BUCKET",
-        messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-        appId: "YOUR_APP_ID",
-      };
+          firebase.initializeApp(firebaseConfig);
+          const db = firebase.firestore();
 
-      // Initialize Firebase
-      const app = initializeApp(firebaseConfig);
-      const db = getFirestore(app);
+          const elements = {
+              startScreen: document.getElementById('start-screen'),
+              quizScreen: document.getElementById('quiz-screen'),
+              resultsScreen: document.getElementById('results-screen'),
+              playerNameInput: document.getElementById('player-name'),
+              questionElement: document.getElementById('question'),
+              optionsElement: document.getElementById('options'),
+              timeElement: document.getElementById('time')
+          };
 
-      // Add Player Result
-      document.getElementById("addResultButton").addEventListener("click", async () => {
-        const playerName = document.getElementById("playerName").value;
-        const score = parseInt(document.getElementById("score").value);
-        const totalTime = parseInt(document.getElementById("totalTime").value);
+          const gameState = {
+              playerName: '',
+              currentQuestion: 0,
+              score: 0,
+              startTime: 0,
+              totalTime: 0,
+              questionTimes: []
+          };
 
-        if (playerName && score && totalTime) {
-          try {
-            await addDoc(collection(db, "Ramadan"), {
-              playerName: playerName,
-              score: score,
-              totalTime: totalTime,
-              Date: new Date(),
-            });
-            alert("Result added successfully!");
-            displayTopPlayers();
-            displayAllPlayers();
-          } catch (error) {
-            console.error("Error adding result: ", error);
+          const questions = [
+              {
+                  question: "كم عدد ركعات صلاة التراويح؟",
+                  options: ["8 ركعات", "20 ركعة", "12 ركعة", "16 ركعة"],
+                  correct: 1
+              },
+              {
+                  question: "في أي ليلة من رمضان تُتحرى ليلة القدر؟",
+                  options: ["ليلة 27", "ليلة 29", "ليلة 21", "ليلة 23"],
+                  correct: 0
+              },
+              {
+                  question: "ما هو أول مسجد بُني في الإسلام؟",
+                  options: ["المسجد الحرام", "المسجد النبوي", "مسجد قباء", "المسجد الأقصى"],
+                  correct: 2
+              }
+          ];
+
+          function startGame() {
+              if (!elements.playerNameInput.value.trim()) {
+                  alert('الرجاء إدخال اسمك');
+                  return;
+              }
+
+              gameState.playerName = elements.playerNameInput.value.trim();
+              gameState.startTime = Date.now();
+              elements.startScreen.classList.add('hidden');
+              elements.quizScreen.classList.remove('hidden');
+              showQuestion();
+              startTimer();
           }
-        } else {
-          alert("Please fill in all fields!");
-        }
-      });
 
-      // Display Top 3 Players
-      async function displayTopPlayers() {
-        const topPlayersList = document.getElementById("top-players");
-        topPlayersList.innerHTML = ""; // Clear previous results
-        const q = query(collection(db, "Ramadan"), orderBy("score", "desc"), limit(3));
-        const querySnapshot = await getDocs(q);
+          function showQuestion() {
+              if (gameState.currentQuestion >= questions.length) {
+                  showResults();
+                  return;
+              }
 
-        querySnapshot.forEach((doc) => {
-          const li = document.createElement("li");
-          li.textContent = `${doc.data().playerName}: ${doc.data().score} points`;
-          li.classList.add("top-player");
-          topPlayersList.appendChild(li);
-        });
-      }
+              const question = questions[gameState.currentQuestion];
+              elements.questionElement.textContent = question.question;
+              elements.optionsElement.innerHTML = '';
 
-      // Display All Players
-      async function displayAllPlayers() {
-        const allPlayersList = document.getElementById("all-players");
-        allPlayersList.innerHTML = ""; // Clear previous results
-        const q = query(collection(db, "Ramadan"), orderBy("score", "desc"));
-        const querySnapshot = await getDocs(q);
+              question.options.forEach((option, index) => {
+                  const button = document.createElement('button');
+                  button.textContent = option;
+                  button.onclick = () => checkAnswer(index);
+                  elements.optionsElement.appendChild(button);
+              });
+          }
 
-        querySnapshot.forEach((doc) => {
-          const li = document.createElement("li");
-          li.textContent = `${doc.data().playerName}: ${doc.data().score} points`;
-          allPlayersList.appendChild(li);
-        });
-      }
+          function checkAnswer(selectedIndex) {
+              const question = questions[gameState.currentQuestion];
+              const timeTaken = (Date.now() - gameState.startTime) / 1000;
+              gameState.questionTimes.push(timeTaken);
 
-      // Initial Display
-      displayTopPlayers();
-      displayAllPlayers();
-    </script>
+              if (selectedIndex === question.correct) {
+                  gameState.score += 1;
+              }
+
+              gameState.currentQuestion += 1;
+              showQuestion();
+          }
+
+          function showResults() {
+              gameState.totalTime = (Date.now() - gameState.startTime) / 1000;
+              elements.quizScreen.classList.add('hidden');
+              elements.resultsScreen.classList.remove('hidden');
+
+              const result = {
+                  playerName: gameState.playerName,
+                  score: gameState.score,
+                  totalTime: gameState.totalTime,
+                  questionTimes: gameState.questionTimes,
+                  timestamp: firebase.firestore.FieldValue.serverTimestamp()
+              };
+
+              db.collection('scores').add(result)
+                  .then(() => {
+                      console.log('تم حفظ النتيجة بنجاح');
+                  })
+                  .catch((error) => {
+                      console.error('خطأ في حفظ النتيجة:', error);
+                  });
+
+              document.getElementById('final-score').innerHTML = `
+                  الاسم: ${gameState.playerName}<br>
+                  النقاط: ${gameState.score} من ${questions.length}<br>
+                  الوقت المستغرق: ${gameState.totalTime.toFixed(2)} ثانية
+              `;
+          }
+
+          function startTimer() {
+              setInterval(() => {
+                  const currentTime = (Date.now() - gameState.startTime) / 1000;
+                  elements.timeElement.textContent = currentTime.toFixed(1);
+              }, 100);
+          }
+      </script>
   </body>
   </html>
